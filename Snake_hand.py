@@ -12,7 +12,7 @@ pygame.init()
 
 ###Вводные игры
 Die_logic = True
-Video_open = False
+Video_open = True
 
 #Задаем параметры окна игры
 width, height = 1400, 800
@@ -55,13 +55,23 @@ fps = 0
 
 #Функция основного меню
 def menu():
+
+    def game_restart():
+        print('game_restart')
+        global running, x, y, snake_positions, snake_length 
+        snake_length = 1
+        running = True
+        x, y = width // 2, height // 2
+        snake_positions = [(x, y)]
+        game_loop()
+
     while True:
         screen.fill(black)
         font = pygame.font.SysFont('Arial', 50)
         text = font.render('Вы проиграли!', True, white)
         screen.blit(text, (width // 2 - text.get_width() // 2, height // 2 - text.get_height() // 2 - 40))
 
-        draw_button('Перезапустить', width // 2 - 100, height // 2, 200, 50, green, (0, 200, 0), game_loop)
+        draw_button('Перезапустить', width // 2 - 100, height // 2, 200, 50, green, (0, 200, 0), game_restart)
         draw_button('Выйти', width // 2 - 100, height // 2 + 60, 200, 50, red, (200, 0, 0), pygame.quit)
 
         pygame.display.flip()
@@ -71,22 +81,21 @@ def menu():
                 pygame.quit()
                 sys.exit()
 
-def restart_game():
-    pass
 
 # Функция для отрисовки кнопки
-def draw_button(text, x, y, width, height, color, hover_color, action=None):
+def draw_button(text, button_x, button_y, width, height, color, hover_color, action=None):
     mouse_x, mouse_y = pygame.mouse.get_pos()
-    if x < mouse_x < x + width and y < mouse_y < y + height:
-        pygame.draw.rect(screen, hover_color, (x, y, width, height))
+    if button_x < mouse_x < button_x + width and button_y < mouse_y < button_y + height:
+        pygame.draw.rect(screen, hover_color, (button_x, button_y, width, height))
     else:
-        pygame.draw.rect(screen, color, (x, y, width, height))
+        pygame.draw.rect(screen, color, (button_x, button_y, width, height))
 
     font = pygame.font.SysFont('Arial', 30)
     text_surface = font.render(text, True, white)
-    screen.blit(text_surface, (x + width // 2 - text_surface.get_width() // 2, y + height // 2 - text_surface.get_height() // 2))
+    screen.blit(text_surface, (button_x + width // 2 - text_surface.get_width() // 2, button_y + height // 2 - text_surface.get_height() // 2))
 
-    if pygame.mouse.get_pressed()[0] and x < mouse_x < x + width and y < mouse_y < y + height and action is not None:
+    if pygame.mouse.get_pressed()[0] and button_x < mouse_x < button_x + width and button_y < mouse_y < button_y + height and action is not None:
+        print('кнопка нажата')
         action()
 
 #Функция возвращающая кол-во поднятых пальцев
@@ -145,8 +154,7 @@ clock = pygame.time.Clock()
 running = True
 
 def camera_thread():
-    global running
-    while running:
+    while True:
         global frame_count, previous_time, x, y, food_position, snake_length, snake_positions, snake_size, fps, shift_x, shift_y
 
         ret, frame = cap.read()
@@ -222,8 +230,11 @@ thread = threading.Thread(target=camera_thread, daemon=True)
 thread.start()
 
 def game_loop():
+    print('Запуск Game_loop')
     global running
+
     while running:
+        # print('цикл игры')
         global x, y, food_position, snake_length, snake_positions, snake_size
 
         #Берет все события из активной сессии игры каждую итерацию
