@@ -11,6 +11,8 @@ import threading
 pygame.init()
 
 ###Вводные игры
+Die_logic = True
+Video_open = False
 
 #Задаем параметры окна игры
 width, height = 1400, 800
@@ -50,6 +52,42 @@ flag = True
 previous_time = time.time()
 frame_count = 0
 fps = 0
+
+#Функция основного меню
+def menu():
+    while True:
+        screen.fill(black)
+        font = pygame.font.SysFont('Arial', 50)
+        text = font.render('Вы проиграли!', True, white)
+        screen.blit(text, (width // 2 - text.get_width() // 2, height // 2 - text.get_height() // 2 - 40))
+
+        draw_button('Перезапустить', width // 2 - 100, height // 2, 200, 50, green, (0, 200, 0), game_loop)
+        draw_button('Выйти', width // 2 - 100, height // 2 + 60, 200, 50, red, (200, 0, 0), pygame.quit)
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+def restart_game():
+    pass
+
+# Функция для отрисовки кнопки
+def draw_button(text, x, y, width, height, color, hover_color, action=None):
+    mouse_x, mouse_y = pygame.mouse.get_pos()
+    if x < mouse_x < x + width and y < mouse_y < y + height:
+        pygame.draw.rect(screen, hover_color, (x, y, width, height))
+    else:
+        pygame.draw.rect(screen, color, (x, y, width, height))
+
+    font = pygame.font.SysFont('Arial', 30)
+    text_surface = font.render(text, True, white)
+    screen.blit(text_surface, (x + width // 2 - text_surface.get_width() // 2, y + height // 2 - text_surface.get_height() // 2))
+
+    if pygame.mouse.get_pressed()[0] and x < mouse_x < x + width and y < mouse_y < y + height and action is not None:
+        action()
 
 #Функция возвращающая кол-во поднятых пальцев
 def count_fingers(landmarks):
@@ -105,7 +143,7 @@ if not cap.isOpened():
 # Запуск основного цикла
 clock = pygame.time.Clock()
 running = True
-# asfd
+
 def camera_thread():
     global running
     while running:
@@ -173,7 +211,8 @@ def camera_thread():
                 cv2.putText(frame, f'Count: {fingers_count}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
         # Показываем изображение
-        cv2.imshow('Finger Count', frame)
+        if Video_open:
+            cv2.imshow('Finger Count', frame)
 
         # Выход из программы при нажатии на клавишу 'q'
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -197,8 +236,9 @@ def game_loop():
  
         
         # Ограничение движения квадратика в пределах окна (Если у змени нет смерти от стены)
-        x = max(0, min(width - snake_size, x))
-        y = max(0, min(height - snake_size, y))
+        if not Die_logic:
+            x = max(0, min(width - snake_size, x))
+            y = max(0, min(height - snake_size, y))
 
         # Динамические координаты головы змени
         Head = (round(x), round(y))
@@ -211,14 +251,19 @@ def game_loop():
             snake_length += 1
 
         # Каждую итерацию в список в 0 индекс добавляем координаты головы
-        snake_positions.insert(0, Head)
+        if len(snake_positions) > 1 and ((abs(snake_positions[1][0] - Head[0]) + abs(snake_positions[1][1] - Head[1])) < 50):
+            snake_positions[0] = Head
+        else:
+            snake_positions.insert(0, Head)
+
         # Обрезаем этот список до длинны змеи (На этом этапе и происходит логика по будущей отрисовке змеи)
         snake_positions = snake_positions[:snake_length]
 
 
-        # # Проверка на столкновение с границами
-        # if (Head[0] <= 0 or Head[0] >= width - snake_size or Head[1] <= 0 or Head[1] >= height - snake_size):
-        #     running = False  # Конец игры
+        # Проверка на столкновение с границами
+        if Die_logic:
+            if (Head[0] <= 0 or Head[0] >= width - snake_size or Head[1] <= 0 or Head[1] >= height - snake_size):
+                running = False  # Конец игры
         
         # Заполнение фона черным цветом
         screen.fill(black)
@@ -227,14 +272,14 @@ def game_loop():
         text_surface = font.render(f"Координаты головы: {Head[0]}, {Head[1]}", True, white)
         screen.blit(text_surface, (10, 10))  # Отрисовываем текст в верхнем левом углу    
 
-        text_surface = font.render(f"Координаты ЕДЫ: {food_position[0]}, {food_position[1]}", True, white)
+        text_surface = font.render(f"Координаты ЕДЫ: {food_position[0] - 50}, {food_position[1] - 50}", True, white)
         screen.blit(text_surface, (10, 30))  # Отрисовываем текст в верхнем левом углу
 
         text_surface = font.render(f"Змеинных КГ: {snake_length}", True, white)
         screen.blit(text_surface, (10, 70))  # Отрисовываем текст в верхнем левом углу
 
         # Получаем FPS и рендерим текст
-        clock.tick(144)
+        clock.tick(60)
         fps_in_game = clock.get_fps()
         fps_text = font.render(f"FPS: {fps_in_game:.2f}", True, white)
         screen.blit(fps_text, (10, 100))  # Отображаем текст в верхнем левом углу
@@ -246,8 +291,10 @@ def game_loop():
 
         for pos in enumerate(snake_positions):
             if pos[0] not in color:
-                color[pos[0]] = (randint(0,255), randint(0,255), randint(0,255))
-            pygame.draw.circle(screen, (color[pos[0]]), (pos[1][0], pos[1][1]), snake_size  - pos[0] *2 )
+                color[pos[0]] = (randint(0,255), 230, 230)
+            
+            pygame.draw.circle(screen, (color[pos[0]]), (pos[1][0], pos[1][1]), snake_size)
+      
         
         x -= shift_x
         y += shift_y
@@ -265,4 +312,5 @@ def game_loop():
     ########################Конец игрового цикла############################################
         
 game_loop()
+menu()
 
