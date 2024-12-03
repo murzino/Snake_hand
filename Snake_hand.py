@@ -13,6 +13,8 @@ pygame.init()
 ###Вводные игры
 Die_logic = True
 Video_open = True
+Speed_lock = True
+
 
 #Задаем параметры окна игры
 width, height = 1400, 800
@@ -186,7 +188,10 @@ def camera_thread():
                 dy = INDEX_finger_cmc.y - INDEX_finger_mcp.y  
 
                 # Вычисление растояния между началом указ.п и кончика указ.п
-                cm = (abs(dx) + abs(dy)) * 40
+                if Speed_lock:
+                    cm = 5
+                else:
+                    cm = (abs(dx) + abs(dy)) * 40
 
 
                 # Вычисление угла в радианах
@@ -200,10 +205,10 @@ def camera_thread():
                 if angle_deg < 0:
                     angle_deg += 360
 
-
+                
                 rad_angle = math.radians(angle_deg)  # Преобразовываем угол в радианы
-                shift_x = cm * math.cos(rad_angle)  # Изменяем координату x
-                shift_y = cm * math.sin(rad_angle)  # Изменяем координату y
+                shift_x = cm *math.cos(rad_angle)  # Изменяем координату x
+                shift_y = cm *math.sin(rad_angle)  # Изменяем координату y
 
 
             
@@ -243,6 +248,10 @@ def game_loop():
             if event.type == pygame.QUIT:
                 #Если пользователь попытался закрыть окно, тогда останавливаем игру
                 running = False
+                #Если пользователь нажал esc - выходим из игры
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit()
 
  
         
@@ -257,7 +266,7 @@ def game_loop():
         #Если еда оказалась в пределах координат головы
         if Head[0] -50 < food_position[0] < Head[0] + 50 and Head[1] -50 < food_position[1] < Head[1] + 50:
             #Назначаем еде новое рандомное положение
-            food_position = random.randint(0, (width)), random.randint(0,(height))
+            food_position = random.randint(0, (width - snake_size)), random.randint(0,(height -  snake_size))
             #Добавляем змее длинну
             snake_length += 1
 
@@ -273,7 +282,7 @@ def game_loop():
 
         # Проверка на столкновение с границами
         if Die_logic:
-            if (Head[0] <= 0 or Head[0] >= width - snake_size or Head[1] <= 0 or Head[1] >= height - snake_size):
+            if (Head[0] <= 0 + snake_size or Head[0] >= width - snake_size or Head[1] - snake_size <= 0 or Head[1] >= height - snake_size):
                 running = False  # Конец игры
         
         # Заполнение фона черным цветом
@@ -318,7 +327,7 @@ def game_loop():
 
         # Выход из программы при нажатии на клавишу 'q'
         if cv2.waitKey(1) & 0xFF == ord('q'):
-            running = False
+            print('fasd')
 
     ########################Конец игрового цикла############################################
         
