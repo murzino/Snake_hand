@@ -1,6 +1,6 @@
 from random import randint
 import cv2
-import mediapipe as mp
+import mediapipe
 import time
 import math
 import pygame
@@ -11,15 +11,15 @@ import threading
 pygame.init()
 
 ###Вводные игры
-Die_logic = True
+Die_logic = False
 Video_open = True
-Speed_lock = True
+Speed_lock = False
 
 
 #Задаем параметры окна игры
-width, height = 1400, 800
+width, height = 1920, 1080
 screen = pygame.display.set_mode((width, height))
-pygame.display.set_caption("Змеюка-Гадюка")
+pygame.display.set_caption("Змеюка")
 
 # Определение цветов и шрифтов
 black = (0, 0, 0)
@@ -42,12 +42,12 @@ shift_y = 0
 # Начальные координаты еды
 food_position = width // 3, height // 3
 
-###Трекинг рук
+
 
 #Работа с пальцами
-mp_hands = mp.solutions.hands
+mp_hands = mediapipe.solutions.hands
 hands = mp_hands.Hands(max_num_hands=1)
-mp_draw = mp.solutions.drawing_utils
+mp_draw = mediapipe.solutions.drawing_utils
 flag = True
 
 # Переменные для расчета FPS
@@ -129,7 +129,7 @@ def count_fingers(landmarks):
         if abs(wrist.x - palec.x)+abs(wrist.y - palec.y)  > 0.2 :
             return True
 
-    #Каждый кадр определяет сколько пальцев поднято
+    #Каждый кадр определяет сколько пальцев поднято, пока данная функция не используется
     count = 0
     if True_or_False(index_tip):  # Указательный палец
         count += 1
@@ -142,10 +142,8 @@ def count_fingers(landmarks):
     return count
 
 
-
 # Захват видео
 cap = cv2.VideoCapture(0)
-
 
 if not cap.isOpened():
     print("Ошибка: Не удалось открыть камеру.")
@@ -193,30 +191,24 @@ def camera_thread():
                 else:
                     cm = (abs(dx) + abs(dy)) * 40
 
-
                 # Вычисление угла в радианах
                 angle_rad = math.atan2(dy, dx)
         
                 # Преобразование радианов в градусы
                 angle_deg = math.degrees(angle_rad)
 
-
                 # Убедитесь, что угол находится в диапазоне от 0 до 360
                 if angle_deg < 0:
                     angle_deg += 360
-
                 
                 rad_angle = math.radians(angle_deg)  # Преобразовываем угол в радианы
                 shift_x = cm *math.cos(rad_angle)  # Изменяем координату x
                 shift_y = cm *math.sin(rad_angle)  # Изменяем координату y
 
-
-            
                 # Вывод инфы на экран
                 cv2.putText(frame, f'Angle: {angle_deg:.2f}', (10, 200), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2)
                 cv2.putText(frame, f'Speed: {cm:.2f}', (10, 260), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2)
                 
-
                 # Считаем количество поднятых пальцев   
                 fingers_count = count_fingers(hand_landmarks.landmark)
 
@@ -231,13 +223,12 @@ def camera_thread():
         if cv2.waitKey(1) & 0xFF == ord('q'):
             running = False
 
+#Пускаем функцию камеры в отдельный поток от игровой функции (иначе логика игры (читать как fps), будет залочена на частоте обновления камеры)
 thread = threading.Thread(target=camera_thread, daemon=True)
 thread.start()
 
 def game_loop():
-    print('Запуск Game_loop')
     global running
-
     while running:
         # print('цикл игры')
         global x, y, food_position, snake_length, snake_positions, snake_size
@@ -253,12 +244,10 @@ def game_loop():
                 if event.key == pygame.K_ESCAPE:
                     pygame.quit()
 
- 
-        
-        # Ограничение движения квадратика в пределах окна (Если у змени нет смерти от стены)
+        # Ограничение движения змеи в пределах окна (Если у змени нет смерти от стены)
         if not Die_logic:
-            x = max(0, min(width - snake_size, x))
-            y = max(0, min(height - snake_size, y))
+            x = max(0 + snake_size, min(width - snake_size, x))
+            y = max(0 + snake_size, min(height - snake_size, y))
 
         # Динамические координаты головы змени
         Head = (round(x), round(y))
@@ -278,7 +267,6 @@ def game_loop():
 
         # Обрезаем этот список до длинны змеи (На этом этапе и происходит логика по будущей отрисовке змеи)
         snake_positions = snake_positions[:snake_length]
-
 
         # Проверка на столкновение с границами
         if Die_logic:
@@ -304,7 +292,6 @@ def game_loop():
         fps_text = font.render(f"FPS: {fps_in_game:.2f}", True, white)
         screen.blit(fps_text, (10, 100))  # Отображаем текст в верхнем левом углу
 
-
         # Рисуем змею
         # for pos in enumerate(snake_positions):
         #     pygame.draw.circle(screen, (255 - pos[0] * 2, 255 -  pos[0] * 3, 255 - pos[0] * 4), (pos[1][0], pos[1][1]), snake_size )
@@ -315,7 +302,6 @@ def game_loop():
             
             pygame.draw.circle(screen, (color[pos[0]]), (pos[1][0], pos[1][1]), snake_size)
       
-        
         x -= shift_x
         y += shift_y
 
