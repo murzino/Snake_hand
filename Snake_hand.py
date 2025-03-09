@@ -12,8 +12,8 @@ pygame.init()
 
 ###Вводные игры
 Die_logic = True
-Video_open = False
-Speed_lock = False
+Video_open = True
+Speed_lock = True
 
 
 #Задаем параметры окна игры
