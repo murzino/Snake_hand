@@ -11,7 +11,7 @@ import threading
 pygame.init()
 
 ###Вводные игры
-Die_logic = True
+Die_logic = False
 Video_open = False
 Speed_lock = False
 
